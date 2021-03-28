@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/tachyons@4.12.0/css/tachyons.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <title>GAMER FIGHTER</title>
+<style>
+.healthBar{
+    transition: width 500ms;
+}
+div.cf>h1{
+    text-transform: uppercase;
+    font-size: 2em;
+    letter-spacing: 4px;
+    overflow: hidden;
+    background: linear-gradient(90deg, #000, #fff, #000);
+    background-repeat: no-repeat;
+    position: relative;
+    background-size: 80%;
+    animation: animate 3s linear 3;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0);
+}
+
+  @keyframes animate {
+      0% {
+          background-position: -500%;
+      }
+      100% {
+          background-position: 500%;
+      }
+  }
+</style>
+</head>
+<body class='bg-silver sans-serif'>
+    <div class='bg-white mw7 center' id="app">
+        <div v-if='isGameStarted'>
+            <div class='cf'>
+                <h1 class='tc b f1'>codeur fighter</h1>
+                <section class="w-40 dib relative">
+                    <img :src="`chars/${playerImg}.png`" class="pa1 h3 w3 db pointer center" alt="avatar">
+                    <h2 class='ttu tc mt0'>You</h2>
+                    <div class="bg-light-gray w-100 h2 absolute"></div>
+                    <div class="healthBar w-30 h2 absolute tc b white" :style='myHpView' :class="hpColor">{{ myHp }}</div>
+                    <div class="bg-light-gray w-100 h1 absolute" style='top: 9.5em;'></div>
+                    <div class="bg-red h1 absolute" style='top: 9.5em' :style='energy'></div>
+                </section>
+                <section class="w-40 dib relative fr">
+                    <img :src="`chars/${bossImg}.png`" class="pa1 h3 w3 db pointer center" alt="avatar">
+                    <h2 class='ttu tc mt0'>boss</h2>
+                    <div class="bg-light-gray w-100 h2 absolute"></div>
+                    <div class="healthBar h2 absolute b white tc" :style='bossHpView' :class="hpColor">{{ bossHp }}</div>
+                </section>
+            </div>
+            <div class='mt5'>
+                <section class="flex justify-center pa2 w-100 ba br1 shadow-2 b--white">
+                    <button class="pv2 ph3 bg-light-red ttu bn dib mr3 pointer white b" @click='atk()'><img src="atk.svg" alt="" class='red h2 w2 white mr1'></button>
+                    <button class="pv2 ph3 bg-orange ttu bn dib mr3 pointer white b" v-if='special' @click='specialAtk()'><img src="special.svg" class='h2 w2' alt=""></button>
+                    <button class="pv2 ph3 bg-moon-gray ttu bn dib mr3 white" disabled v-else><img class="h2 w2" src="special.svg" alt=""></button>
+                    <button class="pv2 ph3 bg-green ttu bn dib mr3 pointer white b" v-if='special' @click='heal()'><img class="h2 w2" src="heal.svg" alt=""></button>
+                    <button class="pv2 ph3 bg-moon-gray ttu bn dib mr3 white" disabled v-else><img class="h2 w2" src="heal.svg" alt=""></button>
+                    <button class="pv2 ph3 bg-black ttu bn dib mr3 pointer white b" @click='giveUp()'><img class="h2 w2" src="run.svg" alt=""></button>
+                </section>
+            </div>
+            <div class='mt4'>
+                <ul class='list pl0'>
+                    <template v-for='log in logs'>
+                        <li class="pa1 tc b ttu bg-light-blue">you hit monster for {{ log[0] }}hp</li>
+                        <li class="pa1 tc b ttu bg-light-red mv1">monster hits you for {{ log[1] }}hp</li>
+                    </template>
+                </ul>
+            </div>
+        </div>
+        <div v-else>
+            <img src="select-char.png" class='w-100 mt3 mb5' alt="">
+            <div class='flex justify-center'>
+                <div class="w-20 pa1 b--orange dib mr5">
+                    <img v-if='playerOne === ""' src='chars/unknown.png' class="w-100 h-100" alt="avatar">
+                    <img v-else :src=`chars/${playerOne}.png` class="w-100 h-100" alt="avatar">
+                    <h2 class="tc ttu f1 mv0 baskerville">1P</h2>
+                </div>
+                <div class='dib w-50'>
+                    <img v-for='char in charsTop' :src="`chars/${char}.png`" class="pa2 h3 w3 dib pointer" alt="avatar" @click="startGame(char)" @mouseover='playerOne = char'>
+                    <img v-for='char in charsBtm' :src="`chars/${char}.png`" class="pa2 h3 w3 dib pointer" alt="avatar" @click="startGame(char)" @mouseover='playerOne = char'>
+                </div>
+                <div class="w-20 pa1 b--orange dib">
+                    <img src="chars/unknown.png" class="w-100 h-100" alt="avatar">
+                    <h2 class="tc ttu f1 mv0 baskerville">2p</h2>
+                </div>
+                <!--<div class='mt2 flex justify-center pa2 shadow-3'>
+                    <button @click='isGameStarted = !isGameStarted' class="pv2 ph3 bg-green ttu bn dib mr3 pointer white b">start the game</button>
+                    </div>-->
+            </div>
+        </div>
+</body>
+<script>
+    const test = new Vue({
+        el: '#app',
+        data(){
+            return {
+                myHp: 100,
+                bossHp: 100,
+                myEnergy: 0,
+                isGameStarted: false,
+                logs: [],
+                charsTop: ['ken', 'akuma', 'balrog', 'chunli'],
+                charsBtm: ['ryu', 'dhalsim', 'sakura', 'zangief'],
+                playerImg: '',
+                playerOne: '',
+                bossImg: ''
+            };
+        },
+        methods: {
+            giveUp(){
+                this.isGameStarted = false;
+                this.myHp = 100;
+                this.bossHp = 100;
+                this.myEnergy = 0;
+                this.logs = [];
+            },
+            atk(){
+                const atkPoints = this.rdmNumb();
+                this.bossHp -= atkPoints;
+                if(this.bossHp <= 0){
+                    alert('you won');
+                    this.reset();
+                    return;
+                }
+                this.myEnergy =  this.myEnergy < 100 ? this.myEnergy + 25 : this.myEnergy;
+                const bossAtkPoints = this.bossAtk();
+                if(this.myHp <= 0){
+                    alert('you lost this one :)');
+                    this.reset();
+                    return;
+                }
+                this.logs.push([atkPoints, bossAtkPoints]);
+            },
+            specialAtk(){
+                const atkPoints = this.rdmNumb() * 2;
+                this.bossHp -= atkPoints;
+                this.myEnergy = 0;
+                const bossAtkPoints = this.bossAtk();
+                if(this.bossHp <= 0){
+                    alert('you won');
+                    this.reset();
+                    return;
+                }
+                if(this.myHp <= 0){
+                    alert('you lost this one :)');
+                    this.reset();
+                    return;
+                }
+                this.logs.push([atkPoints, bossAtkPoints]);
+            },
+            heal(){
+                const healPoints = this.rdmNumb() * 3;
+                this.myHp = (this.myHp + healPoints) > 100 ? 100 : this.myHp + healPoints;
+                this.myEnergy = 0;
+                const bossAtkPoints = this.bossAtk();
+                if(this.myHp <= 0){
+                    alert('you lost this one :)');
+                    this.reset();
+                    return;
+                }
+                this.logs.push([healPoints, bossAtkPoints]);
+            },
+            bossAtk(){
+                const bossAtkPoints = this.rdmNumb() + 2;
+                this.myHp -= bossAtkPoints;
+                return bossAtkPoints;
+            },
+            rdmNumb(){
+                return Math.ceil(Math.random() * 10);
+            },
+            reset(){
+                this.isGameStarted = false;
+                this.bossHp = 100;
+                this.myHp = 100;
+                this.myEnergy = 0;
+                this.logs = [];
+            },
+            startGame(char){
+                this.isGameStarted = true;
+                this.playerImg = char;
+                const rdm = Math.floor(Math.random() * 8);
+                const characters = [...this.charsTop, ...this.charsBtm];
+                this.bossImg = characters[rdm];
+            }
+        },
+        computed: {
+            energy(){
+                return {
+                    width: this.myEnergy + '%'
+                }
+            },
+            special(){
+                return this.myEnergy === 100;
+            },
+            myHpView(){
+                return {
+                    width: this.myHp + '%'
+                }
+            },
+            bossHpView(){
+                return {
+                    width: this.bossHp + '%'
+                }
+            },
+            hpColor(){
+                return {
+                    'bg-yellow': this.myHp < 50 && this.myHp > 20 || this.bossHp < 50 && this.bossHp > 20,
+                    'bg-red': this.myHp < 20 || this.bossHp < 20,
+                    'bg-green': this.myHp >= 50 || this.bossHp >= 50
+                }
+            },
+        }
+    });
+</script>
+</html>
